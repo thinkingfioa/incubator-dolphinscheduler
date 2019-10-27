@@ -75,20 +75,21 @@ public class MasterServer extends AbstractServer {
 
     public MasterServer(ProcessDao processDao){
         try {
+            // 读取配置文件master.properties
             conf = new PropertiesConfiguration(Constants.MASTER_PROPERTIES_PATH);
         }catch (ConfigurationException e){
             logger.error("load configuration failed : " + e.getMessage(),e);
             System.exit(1);
         }
         zkMasterClient = ZKMasterClient.getZKMasterClient(processDao);
+        // MasterSchedulerThread是一个扫描线程;
+        // 定时扫描数据库Command表，根据不同的命令类型进行不同业务操作
         this.masterSchedulerService = ThreadUtils.newDaemonSingleThreadExecutor("Master-Scheduler-Thread");
     }
 
 
     /**
-     * master server startup
-     *
-     * master server not use web service
+     * master 项目入口
      */
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(MasterServer.class);
@@ -116,7 +117,8 @@ public class MasterServer extends AbstractServer {
         heartBeatInterval = conf.getInt(Constants.MASTER_HEARTBEAT_INTERVAL,
                 Constants.defaultMasterHeartbeatInterval);
 
-        // master exec thread pool num
+        // master exec thread pool num，核心线程
+        // masterExecThread主要负责DAG任务切分、任务提交监控、各种不同命令类型的逻辑处理
         int masterExecThreadNum = conf.getInt(Constants.MASTER_EXEC_THREADS,
                 Constants.defaultMasterExecThreadNum);
 
@@ -126,6 +128,7 @@ public class MasterServer extends AbstractServer {
         // heartbeat thread implement
         Runnable heartBeatThread = heartBeatThread();
 
+        // 注册监听器，stop时执行方法stop(...)
         zkMasterClient.setStoppable(this);
 
         // regular heartbeat
@@ -134,6 +137,7 @@ public class MasterServer extends AbstractServer {
                 scheduleAtFixedRate(heartBeatThread, 5, heartBeatInterval, TimeUnit.SECONDS);
 
         // master scheduler thread
+        // 一个扫描线程，定时扫描数据库中的command表，根据不同的命令类型进行不同的业务操作
         MasterSchedulerThread masterSchedulerThread = new MasterSchedulerThread(
                 zkMasterClient,
                 processDao,conf,
@@ -146,6 +150,7 @@ public class MasterServer extends AbstractServer {
         // what system should do if exception
         try {
             ProcessScheduleJob.init(processDao);
+            // 负责定时任务的启停操作
             QuartzExecutors.getInstance().start();
         } catch (Exception e) {
             try {

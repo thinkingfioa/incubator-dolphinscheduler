@@ -73,6 +73,8 @@ public class ProcessScheduleJob implements Job {
      * execution.
      * </p>
      *
+     * 定时任务，定时添加Command到表中
+     *
      * @throws JobExecutionException if there is an exception while executing the job.
      */
     @Override

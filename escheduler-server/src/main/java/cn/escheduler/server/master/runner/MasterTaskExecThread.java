@@ -35,6 +35,7 @@ import static cn.escheduler.common.Constants.SCHEDULER_TASKS_KILL;
 
 /**
  *  master task exec thread
+ *  负责任务的持久化
  */
 public class MasterTaskExecThread extends MasterBaseTaskExecThread {
 

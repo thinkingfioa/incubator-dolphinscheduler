@@ -24,7 +24,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.ComponentScan;
 
 /**
- *   master server
+ *   master, worker 抽象接口
  */
 @ComponentScan("cn.escheduler")
 public abstract class AbstractServer implements CommandLineRunner, IStoppable {

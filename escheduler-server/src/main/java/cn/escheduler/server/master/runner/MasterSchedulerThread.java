@@ -35,11 +35,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  *  master scheduler thread
+ *
+ *  核心线程
  */
 public class MasterSchedulerThread implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(MasterSchedulerThread.class);
 
+    /**
+     * 负责DAG任务切分、任务提交监控、各种不同命令类型的逻辑处理。核心
+     */
     private final ExecutorService masterExecService;
 
     /**
@@ -82,9 +87,11 @@ public class MasterSchedulerThread implements Runnable {
                         mutex = new InterProcessMutex(zkMasterClient.getZkClient(), znodeLock);
                         mutex.acquire();
 
+                        // 核心处理
                         ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) masterExecService;
                         int activeCount = poolExecutor.getActiveCount();
                         // make sure to scan and delete command  table in one transaction
+                        // 永远去找Command，然后执行
                         processInstance = processDao.scanCommand(logger, OSUtils.getHost(), this.masterExecThreadNum - activeCount);
                         if (processInstance != null) {
                             logger.info("start master exex thread , split DAG ...");

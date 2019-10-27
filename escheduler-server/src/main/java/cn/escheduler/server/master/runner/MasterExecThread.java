@@ -68,6 +68,9 @@ public class MasterExecThread implements Runnable {
      */
     private final Map<MasterBaseTaskExecThread,Future<Boolean>> activeTaskNode = new ConcurrentHashMap<MasterBaseTaskExecThread,Future<Boolean>>();
 
+    /**
+     * MasterTaskExecThread 主要负责任务持久化
+     */
     private final ExecutorService taskExecService;
 
     /**
@@ -77,6 +80,9 @@ public class MasterExecThread implements Runnable {
     private List<TaskInstance> recoverNodeIdList = new ArrayList<>();
     private Map<String,TaskInstance> errorTaskList = new ConcurrentHashMap<>();
     private Map<String, TaskInstance> completeTaskList = new ConcurrentHashMap<>();
+    /**
+     * 即将执行的Task(Node)
+     */
     private Map<String, TaskInstance> readyToSubmitTaskList = new ConcurrentHashMap<>();
     private Map<String, TaskInstance> dependFailedTask = new ConcurrentHashMap<>();
     private Map<String, TaskNode> forbiddenTaskList = new ConcurrentHashMap<>();
@@ -110,6 +116,7 @@ public class MasterExecThread implements Runnable {
 
     static {
         try {
+            // 读取配置文件master.properties
             conf = new PropertiesConfiguration(Constants.MASTER_PROPERTIES_PATH);
         }catch (ConfigurationException e){
             logger.error("load configuration failed : " + e.getMessage(),e);
@@ -153,6 +160,10 @@ public class MasterExecThread implements Runnable {
         }
     }
 
+    /**
+     * Process 就是一个流程的概念。对应于通过拖拽生成的可视化DAG
+     * @throws Exception
+     */
     private void executeProcess() throws Exception {
         prepareProcess();
         runProcess();
@@ -264,8 +275,7 @@ public class MasterExecThread implements Runnable {
 
 
     /**
-     *  generate process dag
-     * @throws Exception
+     *  构造DAG有向图
      */
     private void buildFlowDag() throws Exception {
         recoverNodeIdList = getStartTaskInstanceList(processInstance.getCommandParam());
@@ -422,7 +432,7 @@ public class MasterExecThread implements Runnable {
      *
      * @param dag
      * @param parentNodeName
-     * @return
+     * @return 返回所有的节点
      */
     private List<TaskInstance> getPostTaskInstanceByNode(DAG<String, TaskNode, TaskNodeRelation> dag, String parentNodeName){
 
@@ -476,7 +486,7 @@ public class MasterExecThread implements Runnable {
     }
 
     /**
-     *  submit post node
+     *  submit post node. 提交后序节点执行
      * @param parentNodeName
      */
     private void submitPostNode(String parentNodeName){
@@ -500,6 +510,7 @@ public class MasterExecThread implements Runnable {
             if(task.getState().typeIsPause() || task.getState().typeIsCancel()){
                 logger.info("task {} stopped, the state is {}", task.getName(), task.getState().toString());
             }else{
+                // 将task添加到readyToSubmitTaskList中
                 addTaskToStandByList(task);
             }
         }
@@ -792,6 +803,7 @@ public class MasterExecThread implements Runnable {
                 sendTimeWarning = true;
             }
             Set<MasterBaseTaskExecThread> keys = activeTaskNode.keySet();
+            // 循环遍历Task是否执行完成
             for (MasterBaseTaskExecThread taskExecThread : keys) {
                 Future<Boolean> future = activeTaskNode.get(taskExecThread);
                 TaskInstance task  = taskExecThread.getTaskInstance();
@@ -851,6 +863,7 @@ public class MasterExecThread implements Runnable {
                     }
                 }
             }
+            // 提交Task进入执行队列
             if(canSubmitTaskToQueue()){
                 submitStandByTask();
             }
@@ -913,6 +926,7 @@ public class MasterExecThread implements Runnable {
 
     /**
      *  whether the retry interval is timed out
+     *  重试间隔判断
      * @param taskInstance
      * @return
      */
@@ -936,6 +950,7 @@ public class MasterExecThread implements Runnable {
 
     /**
      * handling the list of tasks to be submitted
+     * 提交任务进入ZK
      */
     private void submitStandByTask(){
         Set<String> readySubmitTaskNames = readyToSubmitTaskList.keySet();
@@ -943,11 +958,13 @@ public class MasterExecThread implements Runnable {
             TaskInstance task = readyToSubmitTaskList.get(readySubmitTaskName);
             DependResult dependResult = getDependResultForTask(task);
             if(DependResult.SUCCESS == dependResult){
+                // 可以直接执行
                 if(retryTaskIntervalOverTime(task)){
                     submitTaskExec(task);
                     removeTaskFromStandbyList(task);
                 }
             }else if(DependResult.FAILED == dependResult){
+                // 依赖的节点执行失败，当前节点不能执行
                 // if the dependency fails, the current node is not submitted and the state changes to failure.
                 dependFailedTask.put(readySubmitTaskName, task);
                 removeTaskFromStandbyList(task);

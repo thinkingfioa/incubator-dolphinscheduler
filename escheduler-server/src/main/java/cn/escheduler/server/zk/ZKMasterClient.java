@@ -55,7 +55,7 @@ public class ZKMasterClient extends AbstractZKClient {
 	private static final ThreadFactory defaultThreadFactory = ThreadUtils.newGenericThreadFactory("Master-Main-Thread");
 
 	/**
-	 *  master znode
+	 *  master znode : /escheduler/masters/host/heartbeatZkInfo
 	 */
 	private String masterZNode = null;
 
@@ -86,11 +86,6 @@ public class ZKMasterClient extends AbstractZKClient {
 
 	private ZKMasterClient(){}
 
-	/**
-	 *  get zkMasterClient
-	 * @param processDao
-	 * @return
-	 */
 	public static synchronized ZKMasterClient getZKMasterClient(ProcessDao processDao){
 		if(zkMasterClient == null){
 			zkMasterClient = new ZKMasterClient(processDao);
@@ -106,7 +101,7 @@ public class ZKMasterClient extends AbstractZKClient {
 	public void init(){
 		// init dao
 		this.initDao();
-
+		// InterProcessMutex是一个分布式的公平可重人互斥锁，类似于RentrantLock(fair=true)
 		InterProcessMutex mutex = null;
 		try {
 			// create distributed lock with the root node path of the lock space as /escheduler/lock/failover/master
@@ -183,6 +178,8 @@ public class ZKMasterClient extends AbstractZKClient {
 	 *  monitor master
 	 */
 	public void listenerMaster(){
+		// Path Children Cache 用来监控一个ZNode的子节点，监听一个子节点增加，更新，删除
+		// 状态的变更通过PathChildrenCacheListener通知
 		PathChildrenCache masterPc = new PathChildrenCache(zkClient,
 				getZNodeParentPath(ZKNodeType.MASTER), true ,defaultThreadFactory);
 
@@ -282,6 +279,8 @@ public class ZKMasterClient extends AbstractZKClient {
 	 */
 	public void listenerWorker(){
 
+		// Path Children Cache 用来监控一个ZNode的子节点，监听一个子节点增加，更新，删除
+		// 状态的变更通过PathChildrenCacheListener通知
 		PathChildrenCache workerPc = new PathChildrenCache(zkClient,
 				getZNodeParentPath(ZKNodeType.WORKER),true ,defaultThreadFactory);
 		try {
