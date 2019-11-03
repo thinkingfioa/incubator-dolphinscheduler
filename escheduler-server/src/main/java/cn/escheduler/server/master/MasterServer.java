@@ -150,7 +150,7 @@ public class MasterServer extends AbstractServer {
         // what system should do if exception
         try {
             ProcessScheduleJob.init(processDao);
-            // 负责定时任务的启停操作
+            // 负责定时任务的启停操作，定时的将需要执行的任务以Command方式写入Command表中
             QuartzExecutors.getInstance().start();
         } catch (Exception e) {
             try {

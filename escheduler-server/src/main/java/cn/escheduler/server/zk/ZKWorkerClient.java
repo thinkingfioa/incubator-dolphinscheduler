@@ -155,7 +155,7 @@ public class ZKWorkerClient extends AbstractZKClient {
 	}
 
 	/**
-	 *  get worker lock path
+	 *  get worker lock path   -  /escheduler/lock/workers
 	 * @return
 	 */
 	public String getWorkerLockPath(){

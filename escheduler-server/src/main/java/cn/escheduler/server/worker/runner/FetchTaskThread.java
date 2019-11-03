@@ -41,12 +41,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  *  fetch task thread
+ *  从Task Queue中获取任务，并执行
  */
 public class FetchTaskThread implements Runnable{
 
     private static final Logger logger = LoggerFactory.getLogger(FetchTaskThread.class);
     /**
-     *  set worker concurrent tasks
+     *  set worker concurrent tasks, default 1
      */
     private final int taskNum;
 
@@ -66,7 +67,8 @@ public class FetchTaskThread implements Runnable{
     private final ProcessDao processDao;
 
     /**
-     *  worker thread pool executor
+     *  worker thread pool executor.
+     *  具体任务执行的线程池
      */
     private final ExecutorService workerExecService;
 
@@ -147,6 +149,7 @@ public class FetchTaskThread implements Runnable{
                 Thread.sleep(Constants.SLEEP_TIME_MILLIS);
 
                 if(!runCheckFlag) {
+                    logger.warn("check flag {}", runCheckFlag);
                     continue;
                 }
 
@@ -169,14 +172,14 @@ public class FetchTaskThread implements Runnable{
                     }
 
                     if (!checkThreadCount(poolExecutor)) {
+                      logger.warn("check threadCount ");
                         break;
                     }
 
                     // get task instance id
-
                     taskInstId = getTaskInstanceId(taskQueueStr);
 
-                    // get task instance relation
+                    // get task instance relation，从数据库中获取
                     taskInstance = processDao.getTaskInstanceRelationByTaskId(taskInstId);
 
                     Tenant tenant = processDao.getTenantForProcess(taskInstance.getProcessInstance().getTenantId(),

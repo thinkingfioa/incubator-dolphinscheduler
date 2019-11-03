@@ -789,6 +789,7 @@ public class MasterExecThread implements Runnable {
 
     /**
      * submit and watch the tasks, until the work flow stop
+     * 提交task，并监听task执行结果，直到流程执行完
      */
     private void runProcess(){
         // submit start node

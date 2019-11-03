@@ -83,7 +83,6 @@ public class MasterSchedulerThread implements Runnable {
 
                         // create distributed lock with the root node path of the lock space as /escheduler/lock/failover/master
                         String znodeLock = zkMasterClient.getMasterLockPath();
-
                         mutex = new InterProcessMutex(zkMasterClient.getZkClient(), znodeLock);
                         mutex.acquire();
 
@@ -91,7 +90,7 @@ public class MasterSchedulerThread implements Runnable {
                         ThreadPoolExecutor poolExecutor = (ThreadPoolExecutor) masterExecService;
                         int activeCount = poolExecutor.getActiveCount();
                         // make sure to scan and delete command  table in one transaction
-                        // 永远去找Command，然后执行
+                        // 永远去找Command，然后执行。其中找Command的动作是互斥的
                         processInstance = processDao.scanCommand(logger, OSUtils.getHost(), this.masterExecThreadNum - activeCount);
                         if (processInstance != null) {
                             logger.info("start master exex thread , split DAG ...");
